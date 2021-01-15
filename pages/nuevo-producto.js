@@ -1,6 +1,7 @@
 import React, { useState, useContext } from 'react';
 import {css} from '@emotion/react';
 import Router, {useRouter} from 'next/router';
+import FileUploader from 'react-firebase-file-uploader';
 import Layout from '../components/layout/Layout';
 import {Formulario, Campo, InputSubmit, Error} from '../components/ui/Formulario';
 import {FireBaseContext} from '../firebase/index';
@@ -11,24 +12,40 @@ import validarCrearProducto from '../validacion/validarCrearProducto'
 
 const NuevoProducto = () => {
 
+    const [urlimagen, guardarUrlImagen] = useState('');
     const [error, setError] = useState(false);
 
     const STATE_INICIAL = {
         nombre : '',
         empresa: '',
-        //imagen: '',
+        imagen: '',
         url: '',
         descripcion: ''
     }
 
     const {valores, errores, handleChange, handleSubmit, handleBlur} = useValidacion(STATE_INICIAL, validarCrearProducto, crearProducto);
 
-    const {nombre, empresa, url, descripcion} = valores;
+    const {nombre, empresa, imagen, url, descripcion} = valores;
 
     const router = useRouter();
 
     // contexte con crud de firebase
     const {usuario, firebase} = useContext(FireBaseContext);
+
+    const handleFile = e => {
+        if(e.target.files[0]){
+            console.log(e.target.files[0])
+            guardarUrlImagen(e.target.files[0])
+        }
+        
+    }
+
+    const handleUpload = async () => {
+        const uploadTask = await firebase.storage.ref(`products/${urlimagen.lastModified}${urlimagen.name}`).put(urlimagen);
+        const downloadURL = await uploadTask.ref.getDownloadURL();
+        return downloadURL
+    }
+
 
     async function crearProducto(){
         if(!usuario){
@@ -37,18 +54,23 @@ const NuevoProducto = () => {
 
         // crear el objeto de un nuevo producto
         const producto = {
-            nombre,
-            empresa,
-            url,
+            nombre, 
+            empresa, 
+            url, 
+            urlimagen: await handleUpload(),
             descripcion,
             votos: 0,
             comentarios: [],
             creado: Date.now()
         }
 
-        firebase.db.collection('productos').add(producto);
+        await firebase.db.collection('productos').add(producto);
+
+        return router.push('/');
 
     }
+
+
 
     return(
         <div>
@@ -99,21 +121,17 @@ const NuevoProducto = () => {
 
                             {errores.empresa && <Error>{errores.empresa}</Error> }
 
-                            {/*
                             <Campo>
                                 <label htmlFor="imagen">Imagen</label>
-                                <input
+                                <input 
                                     type="file"
+                                    accept="image/*"
                                     id="imagen"
                                     name="imagen"
-                                    value={imagen}
-                                    onChange={handleChange}
-                                    onBlur={handleBlur}
+                                    onInput={(e) => handleFile(e)}
+                                    randomizeFilename
                                 />
                             </Campo>
-
-                            {errores.imagen && <Error>{errores.imagen}</Error> }
-                            */}
 
                             <Campo>
                                 <label htmlFor="url">Url</label>
