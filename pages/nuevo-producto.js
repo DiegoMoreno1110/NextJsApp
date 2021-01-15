@@ -129,7 +129,6 @@ const NuevoProducto = () => {
                                     id="imagen"
                                     name="imagen"
                                     onInput={(e) => handleFile(e)}
-                                    randomizeFilename
                                 />
                             </Campo>
 
